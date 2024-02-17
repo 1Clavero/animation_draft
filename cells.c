@@ -6,7 +6,7 @@
 /*   By: artclave <artclave@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/21 18:46:05 by artclave          #+#    #+#             */
-/*   Updated: 2024/01/26 08:44:12 by artclave         ###   ########.fr       */
+/*   Updated: 2024/02/17 14:49:38 by artclave         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,7 @@ void	hash(double x, double y, t_coordinates *v)
 	v->y += y;
 }
 
-double	distance_next_point(double grid_x, double grid_y, t_coordinates point, t_mlx *mlx)
+double	distance_next_point(double grid_x, double grid_y, t_coordinates point)
 {
 	t_coordinates	grid_vector;
 	double	distance;
@@ -85,7 +85,7 @@ double	distance_next_point(double grid_x, double grid_y, t_coordinates point, t_
 	return (distance);
 }
 
-void	worley_value(t_coordinates point, t_noise *noise, t_mlx *mlx)
+void	worley_value(t_coordinates point, t_noise *noise)
 {
 	t_coordinates	grid;
 	double	i;
@@ -100,7 +100,7 @@ void	worley_value(t_coordinates point, t_noise *noise, t_mlx *mlx)
 		j = -2;
 		while (++j < 2)
 		{
-			noise->adj_distance = distance_next_point(grid.x + i, grid.y + j, point, mlx);
+			noise->adj_distance = distance_next_point(grid.x + i, grid.y + j, point);
 			if (noise->adj_distance < noise->min_distance)
 				noise->min_distance = noise->adj_distance;
 		}
@@ -123,15 +123,17 @@ void	plot_points(t_mlx *mlx)
 		while (++pixel.y < mlx->height)
 		{
 			z.y = map(pixel.y, mlx->height, mlx->range.y_min, mlx->range.y_max);
-			worley_value(z, &noise, mlx);
+			worley_value(z, &noise);
 			pixel.color = lerp_colors(0x0000000, 0x0FFFFFF, noise.color_step);
-			if (mlx->zoom < 4)
+			if (mlx->zoom < 2)
 			{
-				noise.color_step = (mlx->zoom) / 4;
-				pixel.color = lerp_colors(0x09CC702, pixel.color, noise.color_step);
+				noise.color_step = (mlx->zoom) / 2;
+				pixel.color = lerp_colors(0x0000000, pixel.color, noise.color_step);
+			//	pixel.color = lerp_colors(0x09CC702, pixel.color, noise.color_step);
 			//	pixel.color = lerp_colors(0x000A86B, pixel.color, noise.color_step);
 			}
 			ft_mlx_pixel_put(&mlx->frame->image, pixel.x, pixel.y, pixel.color);
+			//ft_mlx_pixel_put(&mlx->image, pixel.x, pixel.y, pixel.color);
 		}
 	}
 }
@@ -144,8 +146,38 @@ static void	set_fractal_range(t_mlx *mlx)
 	mlx->range.y_min = (1 + mlx->zoom);
 }
 
-void	draw_cells(t_mlx *mlx)
+void	draw_cells(t_mlx *mlx) //swap
+//int	draw_cells(t_mlx *mlx)
 {
+	//mlx->zoom -= 0.01; //delete
 	set_fractal_range(mlx);
 	plot_points(mlx);
+	//mlx_put_image_to_window(mlx->mlx, mlx->window, mlx->image.img, 0, 0);//delete
+	//if (mlx->zoom > 0)//delete
+	//	return (1); //delete
+	//return (0); //delete
 }
+/*
+void	initialize_mlx(t_mlx *mlx)
+{
+	mlx->mlx = mlx_init();
+	mlx->height = 800;
+	mlx->width = 800;
+	mlx->window = mlx_new_window(mlx->mlx, mlx->width, mlx->height, "zoom 1");
+	mlx->image.img = mlx_new_image(mlx->mlx, mlx->width, mlx->height);
+	mlx->image.address = mlx_get_data_addr(mlx->image.img, &mlx->image.bits_per_pixel,
+		&mlx->image.line_length, &mlx->image.endian);
+}
+
+int	main(void)
+{
+	t_mlx	mlx;
+
+	initialize_mlx(&mlx);
+	mlx.zoom = 0.5;
+	draw_cells(&mlx);
+	//mlx_loop_hook(mlx.mlx, (int (*)(void *))draw_cells, &mlx);
+	mlx_loop(mlx.mlx);
+	return (0);
+}
+*/

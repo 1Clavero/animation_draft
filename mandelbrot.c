@@ -6,7 +6,7 @@
 /*   By: artclave <artclave@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/21 08:17:46 by artclave          #+#    #+#             */
-/*   Updated: 2024/02/17 07:40:21 by artclave         ###   ########.fr       */
+/*   Updated: 2024/02/17 20:57:05 by artclave         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,6 +106,8 @@ static void	plot_points_mandelbrot(t_mlx *mlx)
 			pixel.color = is_mandelbrot(c);
 			if (pixel.color == 0x0FFFFFF && mlx->zoom > 1.3)
 				continue;
+			if (mlx->zoom > 50)
+				pixel.color = lerp_colors(pixel.color, 0x0FFFFFF, (mlx->zoom - 50) / 40);
 			if (c.x > (-2 * 1.3) && c.x < (2 * 1.3) && c.y > (-2 * 1.3) && c.y <  (2 * 1.3))
 				ft_mlx_pixel_put(&mlx->frame->image, pixel.x, pixel.y, pixel.color);
 			//else

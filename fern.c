@@ -6,7 +6,7 @@
 /*   By: artclave <artclave@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/12 14:58:09 by artclave          #+#    #+#             */
-/*   Updated: 2024/02/15 04:33:19 by artclave         ###   ########.fr       */
+/*   Updated: 2024/02/17 20:30:22 by artclave         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ static void	ft_mlx_pixel_put(t_data *data, int x, int y, int color)
 			+ x * (data->bits_per_pixel / 8));
 	*(unsigned int *)dst = color;
 }
-
+/*
 static void	initialize_mlx(t_mlx *mlx)
 {
 	mlx->mlx = mlx_init();
@@ -32,7 +32,7 @@ static void	initialize_mlx(t_mlx *mlx)
 	mlx->image.img = mlx_new_image(mlx->mlx, mlx->width, mlx->height);
 	mlx->image.address = mlx_get_data_addr(mlx->image.img, &mlx->image.bits_per_pixel,
 		&mlx->image.line_length, &mlx->image.endian);
-}
+}*/
 
 static void	fern_transformation(t_coordinates *z)
 {
@@ -75,7 +75,7 @@ static double	map (double z, double z_min, double z_range, double pixel_range)
 	}
 	return (pixel);
 }
-
+/*
 static int	lerp_colors(int	color_start, int color_end, double step)
 {
 	t_color	color;
@@ -109,7 +109,7 @@ static void	draw_background(t_mlx *mlx)
 			ft_mlx_pixel_put(&mlx->frame->image,p.x, p.y, 0x0000000);
 	}
 }
-
+*/
 static void	rotate(t_coordinates *p, double deg)
 {
 	double complex	xy;
@@ -125,7 +125,6 @@ static void	plot_points(t_mlx *mlx, int iterations, int color, double deg)
 {
 	t_coordinates	z;
 	t_coordinates	p;
-	double	step;
 	int	i;
 
 	srand(time(NULL));
@@ -136,7 +135,7 @@ static void	plot_points(t_mlx *mlx, int iterations, int color, double deg)
 	//	iterations *= 1 / mlx->zoom;
 	//if (mlx->zoom > 2)
 	//	iterations -= (int)(mlx->zoom * 5);
-	iterations /= 500;//1000;
+	iterations /= 1000; //10
 	//printf("tierations: %d\n", iterations);
 	while (++i < iterations)
 	{
@@ -148,7 +147,8 @@ static void	plot_points(t_mlx *mlx, int iterations, int color, double deg)
 		p.y = map(z.y, mlx->range.y_min, mlx->range.y_total, mlx->height);
 		rotate(&p, deg);
 		if (p.x < 800 && p.y < 800 && p.x >= 0 && p.y >= 0)
-			ft_mlx_pixel_put(&mlx->frame->image, p.x, p.y, color); //0x043927
+			ft_mlx_pixel_put(&mlx->frame->image, p.x, p.y, color);
+			//0x043927
 	//	draw_fern(z);
 	}
 }
@@ -170,10 +170,11 @@ void	draw_fern(t_mlx *mlx)
 	//	mlx->zoom += mlx->zoom;
 	//else
 
-	if (mlx->zoom > 1)
+	/*if (mlx->zoom > 1)
 		mlx->zoom += 0.01;
 	else
 		mlx->zoom += 0.001;
+		*/
 	set_fractal_range(mlx);
 	//draw_background(mlx);
 	deg = 45;

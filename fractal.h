@@ -6,7 +6,7 @@
 /*   By: artclave <artclave@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/19 11:02:45 by artclave          #+#    #+#             */
-/*   Updated: 2024/02/17 11:21:01 by artclave         ###   ########.fr       */
+/*   Updated: 2024/02/17 21:14:28 by artclave         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,10 @@
 
 # define FOREGROUND 1
 # define BACKGROUND 0
-# define TOTAL_SCENES 1
+# define NO 0
+# define YES 1
+# define TOTAL_SCENES 4
+
 
 typedef	struct	s_color
 {
@@ -121,6 +124,15 @@ typedef struct	s_mlx
 	double	shift_x;
 	double	shift_y;
 	t_color	color;
+	int	order;
+	int	n;
+	int	points;
+	double	one;
+	double	zero;
+	double	len;
+	double	double_height;
+	double	double_width;
+	int	grid[800][800];
 }		t_mlx;
 
 typedef	struct	s_zoom
@@ -130,21 +142,25 @@ typedef	struct	s_zoom
 	double	factor[TOTAL_SCENES][2];
 	double	exponential[TOTAL_SCENES][2];
 	double	speed_up_one[TOTAL_SCENES][2];
-	double	speed_up_two[TOTAL_SCENES][2];
+	double	is_static[TOTAL_SCENES][2];
 }			t_zoom;
 
 typedef struct	s_scene
 {
-	void		(*draw_scene[TOTAL_SCENES][2])(t_mlx *);
-	t_zoom		zoom;
+	void	(*draw_scene[TOTAL_SCENES][2])(t_mlx *);
+	t_zoom	zoom;
+	int		end_determined_by[TOTAL_SCENES];
 }			t_scene;
 
-//void	draw_mandelbrot(int zoom, t_data *image);
+
 void	draw_mandelbrot(t_mlx *mlx);
+void	draw_white(t_mlx *mlx);
 void	draw_cells(t_mlx *mlx);
 void	draw_fern(t_mlx *mlx);
+void	draw_hilbert(t_mlx *mlx);
 #endif
 //if (pixel.x >= mlx->limits.min && pixel.y >= mlx->limits.min && pixel.x < mlx->limits.max && pixel.x < mlx->limits.max);
 //				ft_mlx_pixel_put(&mlx->frame->image, pixel.x, pixel.y, pixel.color);
-//gcc -Wall -Wextra -Werror test2.c mandelbrot.c -L. -lmlx -framework OpenGL -framework AppKit
-//gcc -Wall -Wextra -Werror test3.c mandelbrot.c -L. -lmlx -framework OpenGL -framework AppKit
+//gcc -Wall -Wextra -Werror one_scene.c fern.c -L. -lmlx -framework OpenGL -framework AppKit
+//gcc -Wall -Wextra -Werror test.c mandelbrot.c -L. -lmlx -framework OpenGL -framework AppKit
+//gcc -Wall -Wextra -Werror test.c mandelbrot.c white.c cells.c fern.c -L. -lmlx -framework OpenGL -framework AppKit
