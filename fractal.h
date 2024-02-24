@@ -6,7 +6,7 @@
 /*   By: artclave <artclave@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/19 11:02:45 by artclave          #+#    #+#             */
-/*   Updated: 2024/02/17 21:14:28 by artclave         ###   ########.fr       */
+/*   Updated: 2024/02/20 16:09:45 by artclave         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,8 +29,8 @@
 # define BACKGROUND 0
 # define NO 0
 # define YES 1
-# define TOTAL_SCENES 4
-
+# define TOTAL_SCENES 1
+//#define	TOTAL_SCENES 1
 
 typedef	struct	s_color
 {
@@ -78,9 +78,13 @@ typedef struct	s_coordinates
 	double	x;
 	double	y;
 	double	z;
+	double	factor;
+	double	phi;
+	double	r;
+	double	theta;
+	int	iterations;
 	double rand;
 	int	color;
-	int	iterations;
 }
 	t_coordinates;
 
@@ -124,6 +128,7 @@ typedef struct	s_mlx
 	double	shift_x;
 	double	shift_y;
 	t_color	color;
+	t_coordinates max;
 	int	order;
 	int	n;
 	int	points;
@@ -152,15 +157,25 @@ typedef struct	s_scene
 	int		end_determined_by[TOTAL_SCENES];
 }			t_scene;
 
+typedef struct	s_thread
+{
+	t_mlx	*mlx;
+	int		first;
+	int		last;
+	int		deg;
+	int		x;
+}			t_thread;
 
 void	draw_mandelbrot(t_mlx *mlx);
 void	draw_white(t_mlx *mlx);
 void	draw_cells(t_mlx *mlx);
 void	draw_fern(t_mlx *mlx);
 void	draw_hilbert(t_mlx *mlx);
+void	draw_bulb(t_mlx *mlx);
+
 #endif
 //if (pixel.x >= mlx->limits.min && pixel.y >= mlx->limits.min && pixel.x < mlx->limits.max && pixel.x < mlx->limits.max);
 //				ft_mlx_pixel_put(&mlx->frame->image, pixel.x, pixel.y, pixel.color);
-//gcc -Wall -Wextra -Werror one_scene.c fern.c -L. -lmlx -framework OpenGL -framework AppKit
-//gcc -Wall -Wextra -Werror test.c mandelbrot.c -L. -lmlx -framework OpenGL -framework AppKit
-//gcc -Wall -Wextra -Werror test.c mandelbrot.c white.c cells.c fern.c -L. -lmlx -framework OpenGL -framework AppKit
+//gcc -Wall -Wextra -Werror one_scene.c mandelbrot_threads.c cells_threads.c -L. -lmlx -framework OpenGL -framework AppKit
+//gcc -Wall -Wextra -Werror one_scene.c bulb.c -L. -pthread -lmlx -framework OpenGL -framework AppKit
+//gcc -Wall -Wextra -Werror test.c mandelbrot.c white.c cells.c fern.c hilbert.c -pthread -L. -lmlx -framework OpenGL -framework AppKit

@@ -12,21 +12,7 @@
 
 #include "fractal.h"
 #include <time.h>
-/*
-void	display_menu(t_mlx *mlx, char *image_path)
-{
-	t_list	*menu;
 
-	menu = malloc(sizeof(t_list));
-	if (!menu)
-		return ;
-    menu->image.img = mlx_xpm_file_to_image(mlx->mlx, image_path, &mlx->width, &mlx->height);
-    menu->image.address = mlx_get_data_addr(menu->image.img, &menu->image.bits_per_pixel,
-                                                      &menu->image.line_length, &menu->image.endian);
-	mlx->frame = menu;
-    mlx_put_image_to_window(mlx->mlx, mlx->window, mlx->frame->image.img, 0, 0);
-	mlx->head = menu;
-}*/
 void	initialize_mlx(t_mlx *mlx)
 {
 	mlx->mlx = mlx_init();
@@ -89,17 +75,30 @@ t_list	*new_frame(t_mlx *mlx)
 
 void	initialize_function_array(void (*draw_scene[TOTAL_SCENES][2])(t_mlx *))
 {
-	draw_scene[0][FOREGROUND] = draw_mandelbrot;
-	draw_scene[0][BACKGROUND] = draw_white;
+	int	i;
+
+	i = -1;
+	draw_scene[++i][FOREGROUND] = draw_mandelbrot;
+	draw_scene[i][BACKGROUND] = draw_white;
 	//
-	draw_scene[1][FOREGROUND] = draw_mandelbrot;
-	draw_scene[1][BACKGROUND] = draw_cells;
+	draw_scene[++i][FOREGROUND] = draw_mandelbrot;
+	draw_scene[i][BACKGROUND] = draw_cells;
 	//
-	draw_scene[2][FOREGROUND] = NULL;
-	draw_scene[2][BACKGROUND] = draw_fern;
+	draw_scene[++i][FOREGROUND] = draw_fern;
+	draw_scene[i][BACKGROUND] = draw_cells;
 	//
-	draw_scene[3][FOREGROUND] = draw_hilbert;
-	draw_scene[3][BACKGROUND] = draw_fern;
+	draw_scene[++i][FOREGROUND] = NULL;
+	draw_scene[i][BACKGROUND] = draw_fern;
+	//
+
+	///
+	/*
+	draw_scene[++i][FOREGROUND] = draw_fern;
+	draw_scene[i][BACKGROUND] = draw_hilbert;
+	//
+
+	draw_scene[++i][FOREGROUND] = NULL;
+	draw_scene[i][BACKGROUND] = draw_hilbert;*/
 }
 
 void	init_mbrot_and_white(t_scene *scene, int n)
@@ -134,23 +133,42 @@ void	init_mbrot_and_cell(t_scene *scene, int n)
 	//CELL
 	scene->zoom.is_static[n][BACKGROUND] = NO;
 	scene->zoom.value[n][BACKGROUND] = 10.2;
-	scene->zoom.factor[n][BACKGROUND] = -0.04;
+	scene->zoom.factor[n][BACKGROUND] = -0.01;
 	scene->zoom.exponential[n][BACKGROUND] = 0;
 	scene->zoom.speed_up_one[n][BACKGROUND] = -42;
-	scene->zoom.stop[n][BACKGROUND] = 0;
+	scene->zoom.stop[n][BACKGROUND] = 2;
 	//
 	scene->end_determined_by[n] = BACKGROUND;
 }
 
+void	init_cell_and_fern(t_scene *scene, int n)
+{
+	//CELL
+	scene->zoom.is_static[n][BACKGROUND] = NO;
+	scene->zoom.value[n][BACKGROUND] = 2;
+	scene->zoom.factor[n][BACKGROUND] = -0.01;
+	scene->zoom.exponential[n][BACKGROUND] = 0;
+	scene->zoom.speed_up_one[n][BACKGROUND] = -42;
+	scene->zoom.stop[n][BACKGROUND] = 0;
+	//FERN
+	scene->zoom.is_static[n][FOREGROUND] = NO;
+	scene->zoom.value[n][FOREGROUND] = 0;
+	scene->zoom.factor[n][FOREGROUND] = 0.00001;
+	scene->zoom.exponential[n][FOREGROUND] = 0.000001;
+	scene->zoom.speed_up_one[n][FOREGROUND] = 1;
+	scene->zoom.stop[n][FOREGROUND] = 5;
+	//
+	scene->end_determined_by[n] = FOREGROUND;
+}
+
 void	init_fern(t_scene *scene, int n)
 {
-	//FOREGROUND IS NULL
 	//FERN
 	scene->zoom.is_static[n][BACKGROUND] = NO;
-	scene->zoom.value[n][BACKGROUND] = 0;
-	scene->zoom.factor[n][BACKGROUND] = 0.00001;
-	scene->zoom.exponential[n][BACKGROUND] = 0.000001;
-	scene->zoom.speed_up_one[n][BACKGROUND] = 1;
+	scene->zoom.value[n][BACKGROUND] = 5;
+	scene->zoom.factor[n][BACKGROUND] = 0.001;
+	scene->zoom.exponential[n][BACKGROUND] = 0.0001;
+	scene->zoom.speed_up_one[n][BACKGROUND] = 10;
 	scene->zoom.stop[n][BACKGROUND] = 50;
 	//
 	scene->end_determined_by[n] = BACKGROUND;
@@ -158,31 +176,48 @@ void	init_fern(t_scene *scene, int n)
 
 void	init_fern_and_hilbert(t_scene *scene, int n)
 {
-	//HILBERT
-	scene->zoom.is_static[n][FOREGROUND] = NO;
-	scene->zoom.value[n][FOREGROUND] = 0;
-	scene->zoom.factor[n][FOREGROUND] = 0.0001;
-	scene->zoom.exponential[n][FOREGROUND] =  0.0001;
-	scene->zoom.speed_up_one[n][FOREGROUND] = 1;
-	scene->zoom.stop[n][FOREGROUND] = 3;
 	//FERN
+	scene->zoom.is_static[n][FOREGROUND] = NO;
+	scene->zoom.value[n][FOREGROUND] = 50;
+	scene->zoom.factor[n][FOREGROUND] = 0.01;
+	scene->zoom.exponential[n][FOREGROUND] = 0.01;
+	scene->zoom.speed_up_one[n][FOREGROUND] = 200;
+	scene->zoom.stop[n][FOREGROUND] = 0;
+	//HILBERT
 	scene->zoom.is_static[n][BACKGROUND] = NO;
-	scene->zoom.value[n][BACKGROUND] = 50;
-	scene->zoom.factor[n][BACKGROUND] = 0.01;
-	scene->zoom.exponential[n][BACKGROUND] = 0.01;
-	scene->zoom.speed_up_one[n][BACKGROUND] = 200;
-	scene->zoom.stop[n][BACKGROUND] = 0;
+	scene->zoom.value[n][BACKGROUND] = 0;
+	scene->zoom.factor[n][BACKGROUND] = 0.00001;
+	scene->zoom.exponential[n][BACKGROUND] =  0.00001;
+	scene->zoom.speed_up_one[n][BACKGROUND] = 25;
+	scene->zoom.stop[n][BACKGROUND] = 50;
 	//
-	scene->end_determined_by[n] = FOREGROUND;
+	scene->end_determined_by[n] = BACKGROUND;
+}
+
+void	init_hilbert(t_scene *scene, int n)
+{
+	//HILBERT
+	scene->zoom.is_static[n][BACKGROUND] = NO;
+	scene->zoom.value[n][BACKGROUND] = 3;
+	scene->zoom.factor[n][BACKGROUND] = 0.001;
+	scene->zoom.exponential[n][BACKGROUND] = 0.001;
+	scene->zoom.speed_up_one[n][BACKGROUND] = 100;
+	scene->zoom.stop[n][BACKGROUND] = 250;
+	//
+	scene->end_determined_by[n] = BACKGROUND;
 
 }
 void	initialize_zoom_values(t_scene *scene)
 {
-	init_mbrot_and_white(scene, 0);
-	init_mbrot_and_cell(scene, 1);
-	init_fern(scene, 2);
-	init_fern_and_hilbert(scene, 3);
-	//init_hilbert(scene, 4);
+	int	i;
+
+	i = -1;
+	init_mbrot_and_white(scene, ++i);
+	init_mbrot_and_cell(scene, ++i);
+	init_cell_and_fern(scene, ++i);
+	init_fern(scene, ++i);
+	//init_fern_and_hilbert(scene, ++i);
+	//init_hilbert(scene, ++i);
 	//init_mbulb(scene, 5);
 }
 

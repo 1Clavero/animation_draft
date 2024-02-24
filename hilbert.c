@@ -6,13 +6,30 @@
 /*   By: artclave <artclave@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/15 01:42:49 by artclave          #+#    #+#             */
-/*   Updated: 2024/02/17 21:18:05 by artclave         ###   ########.fr       */
+/*   Updated: 2024/02/20 16:35:26 by artclave         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <unistd.h>
 #include "fractal.h"
 #include "time.h"
+# include <pthread.h>
+
+static double	power_of(double base, double exponent)
+{
+	int	i;
+	double result;
+
+	if (exponent == 0)
+		return (1);
+	if (exponent == 1)
+		return (base);
+	result = base;
+	i = 0;
+	while (++i < exponent)
+		result *= base;
+	return (result + 1e-9);
+}
 
 static void	ft_mlx_pixel_put(t_data *data, int x, int y, int color)
 {
@@ -22,7 +39,6 @@ static void	ft_mlx_pixel_put(t_data *data, int x, int y, int color)
 			+ x * (data->bits_per_pixel / 8));
 	*(unsigned int *)dst = color;
 }
-
 
 static int	calculate_order(double map_width)
 {
@@ -38,8 +54,24 @@ static int	calculate_order(double map_width)
 	}
 	if (order % 2 == 0)
 		order++;
-	//printf("order: %d\n", order);
 	return (order);
+}
+
+static void	set_fractal_range(t_mlx *mlx)
+{
+	mlx->range.x_max = 2 * mlx->zoom + 0.8;
+	mlx->range.y_max = 2 * mlx->zoom + 0.2;
+	mlx->range.x_min = 0 * mlx->zoom + 0.8;
+	mlx->range.y_min = 0 * mlx->zoom + 0.2;
+	mlx->range.x_total = mlx->range.x_max - mlx->range.x_min;
+	mlx->range.y_total = (mlx->range.y_max - mlx->range.y_min) * -1;
+	mlx->order = calculate_order(mlx->range.x_total);
+	if (mlx->order < 5)
+		mlx->order = 5;
+	mlx->n = (int)pow(2, mlx->order);
+	mlx->points = (int)mlx->n * mlx->n;
+	mlx->one = 1;
+	mlx->zero = mlx->one / 2;
 }
 
 static double	map(double z, double z_min, double z_range, double pixel_range)
@@ -80,7 +112,6 @@ static void	starting_points(t_coordinates *new, int point, t_mlx *mlx)
 		new->y =  mlx->zero;
 	}
 }
-
 
 static void	get_quadrant(t_coordinates *new, int quad, t_mlx *mlx)
 {
@@ -169,7 +200,6 @@ static void	draw_line(t_mlx *mlx, t_coordinates z, t_coordinates new, int color)
 			increment.y = -1;
 		increment.x = 0;
 	}
-
 	i = -1;
 	while (++i < distance.x || i < distance.y)
 	{
@@ -189,46 +219,65 @@ static void	draw_top_surface(t_mlx *mlx, t_coordinates start, t_coordinates end)
 	double	temp_end;
 	double	temp_start;
 	int	i;
+	int	iterations;
+	double	width;
 
 	int	color;
 	color = 0x0FFFFFF;
-	i = -300;
+	iterations = 300;
+	width = 0.001;
+	if (mlx->zoom < 0.6)
+	{
+			iterations *= 10;
+			width /= 10;
+	}
+	i = iterations * -1;
 	if (start.y == end.y)
 	{
+		end.x += 0.299;
 		temp_start = start.y;
 		temp_end = end.y;
-		while (++i < 300)
+		while (++i < iterations)
 		{
-			start.y = temp_start + (i * 0.001);
-			end.y = temp_end + (i * 0.001);
+			start.y = temp_start + (i * width);
+			end.y = temp_end + (i * width);
 			draw_line(mlx, start, end, color);
 		}
 	}
 	if (start.x == end.x)
 	{
 		end.y += 0.299;
-		temp_end = end.x;
 		temp_start = start.x;
-		while (++i < 300)
+		temp_end = end.x;
+		while (++i < iterations)
 		{
-			end.x = temp_end + (i * 0.001);
-			start.x = temp_start + (i * 0.001);
+			end.x = temp_end + (i * width);
+			start.x = temp_start + (i * width);
 			draw_line(mlx, start, end, color);
 		}
 	}
 }
 
-static void	draw_side_surface(t_mlx *mlx, t_coordinates z, t_coordinates new, int color)
+void	draw_side_surface(t_mlx *mlx, t_coordinates z, t_coordinates new, int color)
 {
 	int	i;
+	int	iterations;
+	double	width;
 
 	i = -1;
-	while (++i < 300)
+	iterations = 150;
+	width = 0.001;
+	if (mlx->zoom < 0.6)
 	{
-		z.x -= 0.001;
-		new.x -= 0.001;
-		z.y -= 0.001;
-		new.y -= 0.001;
+		iterations *= 10;
+		width /= 10;
+	}
+	while (++i < iterations)
+	{
+		z.x -= width;
+		new.x -= width;
+		z.y -= width;
+		new.y -= width;
 		draw_line(mlx, z, new, color);
 	}
 }
@@ -269,7 +318,7 @@ static void	draw_surfaces(t_mlx *mlx, t_coordinates z, t_coordinates new)
 		new.y -= 0.299;
 		draw_vertical_line(mlx, new, z);
 	}
-	else if (z.y == new.y && z.x < new.x)
+	if (z.y == new.y && z.x < new.x)
 	{
 		z.x -= 0.299;
 		draw_horizontal_line(mlx, z, new);
@@ -295,24 +344,26 @@ static void	points_to_image(t_mlx *mlx)
 	}
 }
 
-static void	plot_points(t_mlx *mlx)
+static void	plot_points(t_thread *args)
 {
 	t_coordinates	z;
 	t_coordinates	new;
 	int	i;
 
-	i = -1;
-	z.x = -1;
-	while (++i < mlx->points)
-//	while (++i < 8)
+	i = args->first;
+	z.x = args->x;
+	//printf("args->first: %d, args->last: %d\n", args->first, args->last);
+	while (++i < args->last)
 	{
-		starting_points(&new, i & 3, mlx);
-		get_points(&new, mlx, i);
-		draw_surfaces(mlx, z, new);
+
+		starting_points(&new, i & 3, args->mlx);
+		get_points(&new, args->mlx, i);
+		draw_surfaces(args->mlx, z, new);
 		z.x = new.x;
 		z.y = new.y;
 	}
-	points_to_image(mlx);
+	args->x = z.x;
+	points_to_image(args->mlx);
 }
 
 static void	draw_background(t_mlx *mlx)
@@ -329,25 +380,38 @@ static void	draw_background(t_mlx *mlx)
 	}
 }
 
-static void	set_fractal_range(t_mlx *mlx)
-{
-	mlx->range.x_max = 2 * mlx->zoom + 0.6;
-	mlx->range.y_max = 2 * mlx->zoom - 0.2;
-	mlx->range.x_min = 0 * mlx->zoom + 0.6;
-	mlx->range.y_min = 0 * mlx->zoom - 0.2;
-	mlx->range.x_total = mlx->range.x_max - mlx->range.x_min;
-	mlx->range.y_total = (mlx->range.y_max - mlx->range.y_min) * -1;
-	mlx->order = calculate_order(mlx->range.x_total);
-	mlx->n = (int)pow(2, mlx->order);
-	mlx->points = (int)mlx->n * mlx->n;
-	mlx->one = 1;
-	mlx->zero = mlx->one / 2;
-}
-
 void	draw_hilbert(t_mlx *mlx)
 {
-	//mlx->zoom += 0.05;//DELETE AFTER HEEEEEEEEEEEEEEYYYYYY
+	int			i;
+	pthread_t	thread[12];
+	t_thread	args[12];
+	int			total;
+
+	mlx->zoom += 0.1;
 	set_fractal_range(mlx);
 	draw_background(mlx);
-	plot_points(mlx);
+	i = -1;
+	total = 0;
+	while (++i < 12)
+	{
+		args[i].mlx = mlx;
+		if (i == 0)
+		{
+			args[i].first = -1;
+			args[i].x = -1;
+		}
+		else
+		{
+			args[i].first = args[i - 1].last - 1;
+			args[i].x = args[i - 1].x;
+		}
+		args[i].last = args[i].first + (mlx->points / 12) + 2;
+		if (i == 11 && args[i].last != mlx->points)
+			args[i].last = mlx->points;
+		total += args[i].last - args[i].first - 1;
+		pthread_create(&thread[i], NULL, (void *(*)(void *))&plot_points, (void *)&args[i]);
+	}
+	i = -1;
+	while (++i < 12)
+		pthread_join(thread[i], NULL);
 }

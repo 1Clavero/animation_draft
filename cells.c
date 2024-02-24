@@ -1,19 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   cells.c                                            :+:      :+:    :+:   */
+/*   cells_threads.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: artclave <artclave@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/21 18:46:05 by artclave          #+#    #+#             */
-/*   Updated: 2024/02/17 14:49:38 by artclave         ###   ########.fr       */
+/*   Updated: 2024/02/19 05:23:57 by artclave         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "fractal.h"
 #include <time.h>
 
-void	ft_mlx_pixel_put(t_data *data, int x, int y, int color)
+static void	ft_mlx_pixel_put(t_data *data, int x, int y, int color)
 {
 	char	*dst;
 
@@ -22,7 +22,7 @@ void	ft_mlx_pixel_put(t_data *data, int x, int y, int color)
 	*(unsigned int *)dst = color;
 }
 
-double	map(double pixel, double total_pixels, double fractal_min, double fractal_max)
+static double	map(double pixel, double total_pixels, double fractal_min, double fractal_max)
 {
 	double	result;
 
@@ -30,7 +30,7 @@ double	map(double pixel, double total_pixels, double fractal_min, double fractal
 	return (result);
 }
 
-int	lerp_colors(int	color_start, int color_end, double step)
+static int	lerp_colors(int	color_start, int color_end, double step)
 {
 	t_color	color;
 
@@ -50,8 +50,7 @@ int	lerp_colors(int	color_start, int color_end, double step)
 	return (color.r_new << 16 | color.g_new << 8 | color.b_new);
 }
 
-
-void	hash(double x, double y, t_coordinates *v)
+static void	hash(double x, double y, t_coordinates *v)
 {
 	v->x = sin((x * 127.1) + (y * 311.7));
 	v->y = sin((x * 269.5) + (y * 183.3));
@@ -61,7 +60,7 @@ void	hash(double x, double y, t_coordinates *v)
 	v->y += y;
 }
 
-double	distance_next_point(double grid_x, double grid_y, t_coordinates point)
+static double	distance_next_point(double grid_x, double grid_y, t_coordinates point)
 {
 	t_coordinates	grid_vector;
 	double	distance;
@@ -85,7 +84,7 @@ double	distance_next_point(double grid_x, double grid_y, t_coordinates point)
 	return (distance);
 }
 
-void	worley_value(t_coordinates point, t_noise *noise)
+static void	worley_value(t_coordinates point, t_noise *noise)
 {
 	t_coordinates	grid;
 	double	i;
@@ -108,32 +107,29 @@ void	worley_value(t_coordinates point, t_noise *noise)
 	noise->color_step = noise->min_distance / 0.8;
 }
 
-void	plot_points(t_mlx *mlx)
+static void	plot_points(t_thread	*args)
 {
 	t_noise	noise;
 	t_coordinates	pixel;
 	t_coordinates	z;
 
 	noise.grid_size = 9;
-	pixel.x = -1;
-	while (++pixel.x < mlx->width)
+	pixel.x = args->first;
+	while (++pixel.x < args->last)
 	{
-		z.x = map(pixel.x, mlx->width, mlx->range.x_min, mlx->range.x_max);
+		z.x = map(pixel.x, args->mlx->width, args->mlx->range.x_min, args->mlx->range.x_max);
 		pixel.y = -1;
-		while (++pixel.y < mlx->height)
+		while (++pixel.y < args->mlx->height)
 		{
-			z.y = map(pixel.y, mlx->height, mlx->range.y_min, mlx->range.y_max);
+			z.y = map(pixel.y, args->mlx->height, args->mlx->range.y_min, args->mlx->range.y_max);
 			worley_value(z, &noise);
 			pixel.color = lerp_colors(0x0000000, 0x0FFFFFF, noise.color_step);
-			if (mlx->zoom < 2)
+			if (args->mlx->zoom < 4)
 			{
-				noise.color_step = (mlx->zoom) / 2;
+				noise.color_step = (args->mlx->zoom) / 4;
 				pixel.color = lerp_colors(0x0000000, pixel.color, noise.color_step);
-			//	pixel.color = lerp_colors(0x09CC702, pixel.color, noise.color_step);
-			//	pixel.color = lerp_colors(0x000A86B, pixel.color, noise.color_step);
 			}
-			ft_mlx_pixel_put(&mlx->frame->image, pixel.x, pixel.y, pixel.color);
-			//ft_mlx_pixel_put(&mlx->image, pixel.x, pixel.y, pixel.color);
+			ft_mlx_pixel_put(&args->mlx->frame->image, pixel.x, pixel.y, pixel.color);
 		}
 	}
 }
@@ -146,38 +142,27 @@ static void	set_fractal_range(t_mlx *mlx)
 	mlx->range.y_min = (1 + mlx->zoom);
 }
 
-void	draw_cells(t_mlx *mlx) //swap
-//int	draw_cells(t_mlx *mlx)
+void	draw_cells(t_mlx *mlx)
 {
-	//mlx->zoom -= 0.01; //delete
+	int			i;
+	pthread_t	thread[12];
+	t_thread	args[12];
+
 	set_fractal_range(mlx);
-	plot_points(mlx);
-	//mlx_put_image_to_window(mlx->mlx, mlx->window, mlx->image.img, 0, 0);//delete
-	//if (mlx->zoom > 0)//delete
-	//	return (1); //delete
-	//return (0); //delete
+	i = -1;
+	while (++i < 12)
+	{
+		args[i].mlx = mlx;
+		if (i == 0)
+			args[i].first = (int)((i * (mlx->height / 12) -1));
+		else
+			args[i].first = args[i - 1].last - 1;
+		args[i].last = (int)((i + 1) * ((mlx->height / 12) + 1));
+		if (args[i].last > mlx->height)
+			args[i].last = mlx->height;
+		pthread_create(&thread[i], NULL, (void *(*)(void *))&plot_points, (void *)&args[i]);
+	}
+	i = -1;
+	while (++i < 12)
+		pthread_join(thread[i], NULL);
 }
-/*
-void	initialize_mlx(t_mlx *mlx)
-{
-	mlx->mlx = mlx_init();
-	mlx->height = 800;
-	mlx->width = 800;
-	mlx->window = mlx_new_window(mlx->mlx, mlx->width, mlx->height, "zoom 1");
-	mlx->image.img = mlx_new_image(mlx->mlx, mlx->width, mlx->height);
-	mlx->image.address = mlx_get_data_addr(mlx->image.img, &mlx->image.bits_per_pixel,
-		&mlx->image.line_length, &mlx->image.endian);
-}
-
-int	main(void)
-{
-	t_mlx	mlx;
-
-	initialize_mlx(&mlx);
-	mlx.zoom = 0.5;
-	draw_cells(&mlx);
-	//mlx_loop_hook(mlx.mlx, (int (*)(void *))draw_cells, &mlx);
-	mlx_loop(mlx.mlx);
-	return (0);
-}
-*/

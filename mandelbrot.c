@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   mandelbrot.c                                       :+:      :+:    :+:   */
+/*   mandelbrot_threads.c                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: artclave <artclave@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/21 08:17:46 by artclave          #+#    #+#             */
-/*   Updated: 2024/02/17 20:57:05 by artclave         ###   ########.fr       */
+/*   Updated: 2024/02/19 05:23:21 by artclave         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,6 @@ static int	is_mandelbrot(t_coordinates c)
 
 	i = -1.0;
 	z.iterations = 20;
-	//z.iterations = (200 * (1 - (mlx->zoom / 10))) + 20;
 	z.x = 0;
 	z.y = 0;
 	while (++i < z.iterations)
@@ -84,41 +83,60 @@ static void	ft_mlx_pixel_put(t_data *data, int x, int y, int color)
 
 static void	set_fractal_range(t_mlx *mlx)
 {
-	mlx->range.x_max = (2 * mlx->zoom);// + (mlx->shift_x * mlx->zoom);
-	mlx->range.y_max = (2 * mlx->zoom);// + (mlx->shift_y * mlx->zoom);
-	mlx->range.x_min = (-2 * mlx->zoom);// + (mlx->shift_x * mlx->zoom);
-	mlx->range.y_min = (-2 * mlx->zoom);// + (mlx->shift_y * mlx->zoom);
+	mlx->range.x_max = (2 * mlx->zoom);
+	mlx->range.y_max = (2 * mlx->zoom);
+	mlx->range.x_min = (-2 * mlx->zoom);
+	mlx->range.y_min = (-2 * mlx->zoom);
 }
 
-static void	plot_points_mandelbrot(t_mlx *mlx)
+static void	plot_points(t_thread *args)
 {
 	t_coordinates	pixel;
 	t_coordinates	c;
+	int				max_height;
 
-	pixel.y = -1;
-	while (++pixel.y < mlx->height)
+	pixel.y = (double)args->first;
+	max_height = (double)args->last;
+	while (++pixel.y < max_height)
 	{
-		c.y = map(pixel.y, mlx->height, mlx->range.y_max, mlx->range.y_min);
+		c.y = map(pixel.y, args->mlx->height, args->mlx->range.y_max, args->mlx->range.y_min);
 		pixel.x = -1;
-		while (++pixel.x < mlx->width)
+		while (++pixel.x < args->mlx->width)
 		{
-			c.x = map(pixel.x, mlx->width, mlx->range.x_min, mlx->range.x_max);
+			c.x = map(pixel.x, args->mlx->width, args->mlx->range.x_min, args->mlx->range.x_max);
 			pixel.color = is_mandelbrot(c);
-			if (pixel.color == 0x0FFFFFF && mlx->zoom > 1.3)
+			if (pixel.color == 0x0FFFFFF && args->mlx->zoom > 1.3)
 				continue;
-			if (mlx->zoom > 50)
-				pixel.color = lerp_colors(pixel.color, 0x0FFFFFF, (mlx->zoom - 50) / 40);
+			if (args->mlx->zoom > 50)
+				pixel.color = lerp_colors(pixel.color, 0x0FFFFFF, (args->mlx->zoom - 50) / 40);
 			if (c.x > (-2 * 1.3) && c.x < (2 * 1.3) && c.y > (-2 * 1.3) && c.y <  (2 * 1.3))
-				ft_mlx_pixel_put(&mlx->frame->image, pixel.x, pixel.y, pixel.color);
-			//else
-				//ft_mlx_pixel_put(&mlx->frame->image, pixel.x, pixel.y, 0x0FF0000);
+				ft_mlx_pixel_put(&args->mlx->frame->image, pixel.x, pixel.y, pixel.color);
 		}
 	}
 }
 
 void	draw_mandelbrot(t_mlx *mlx)
 {
+	int			i;
+	pthread_t	thread[12];
+	t_thread	args[12];
+
 	set_fractal_range(mlx);
-	plot_points_mandelbrot(mlx);
+	i = -1;
+	while (++i < 12)
+	{
+		args[i].mlx = mlx;
+		if (i == 0)
+			args[i].first = (int)((i * (mlx->height / 12) -1));
+		else
+			args[i].first = args[i - 1].last - 1;
+		args[i].last= (int)((i + 1) * ((mlx->height / 12) + 1));
+		if (args[i].last > mlx->height)
+			args[i].last = mlx->height;
+		pthread_create(&thread[i], NULL, (void *(*)(void *))&plot_points, (void *)&args[i]);
+	}
+	i = -1;
+	while (++i < 12)
+		pthread_join(thread[i], NULL);
 }
 
