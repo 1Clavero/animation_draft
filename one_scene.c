@@ -16,8 +16,8 @@
 void	initialize_mlx(t_mlx *mlx)
 {
 	mlx->mlx = mlx_init();
-	mlx->height = 400;
-	mlx->width = 400;
+	mlx->height = 800;
+	mlx->width = 800;
 	mlx->window = mlx_new_window(mlx->mlx, mlx->width, mlx->height,"in between");
 	mlx->image.img = mlx_new_image(mlx->mlx, mlx->width, mlx->height);
 	mlx->n = 9; //16, 17, bakc to 9
@@ -60,7 +60,7 @@ static int display_frames(t_mlx *mlx)
 	if (!mlx->is_paused)
 	{
 		mlx_put_image_to_window(mlx->mlx, mlx->window, mlx->frame->image.img, 0, 0);
-		usleep(200000);
+		usleep(20000);
 //		usleep(20000000);
 		if (mlx->frame->next)
 			mlx->frame = mlx->frame->next;
@@ -115,11 +115,11 @@ void	initialize_zoom_values(t_scene	*scene, int n)
 
 	//BULB
 	scene->zoom.is_static[n][BACKGROUND] = NO;
-	scene->zoom.value[n][BACKGROUND] = 0;
-	scene->zoom.factor[n][BACKGROUND] = 0.001; //0.001
-	scene->zoom.exponential[n][BACKGROUND] =  0.001; //0.001
-	scene->zoom.speed_up_one[n][BACKGROUND] = 2; //2
-	scene->zoom.stop[n][BACKGROUND] = 4; // 4
+	scene->zoom.value[n][BACKGROUND] = 0; //0
+	scene->zoom.factor[n][BACKGROUND] = 0.0003; //0.0003
+	scene->zoom.exponential[n][BACKGROUND] =  0.0003; //0.0003
+	scene->zoom.speed_up_one[n][BACKGROUND] = 3; //3
+	scene->zoom.stop[n][BACKGROUND] = 24; // 4
 	//
 	scene->end_determined_by[n] = BACKGROUND;
 //HILBERT

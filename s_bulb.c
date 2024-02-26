@@ -1,24 +1,60 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   bulb.c                                             :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: artclave <artclave@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/12/10 03:54:32 by artclave          #+#    #+#             */
-/*   Updated: 2024/02/24 20:33:57 by artclave         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-#include "fractal.h"
 #include "fractal.h"
 #include <complex.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
-//COLOR 5 FOR PHASE 1
-//COLOR 3 AND COLOR 6 FOR PHASE 2
+#include <immintrin.h> // Include for SIMD
+
 #define TOTAL_THREADS 12
+#include <immintrin.h> // Include for SIMD
+
+static double spherical_radius(t_coordinates *z, t_coordinates c, int n) {
+    // Load z coordinates into SIMD registers
+    __m128d z_x = _mm_set1_pd(z->x);
+    __m128d z_y = _mm_set1_pd(z->y);
+    __m128d z_z = _mm_set1_pd(z->z);
+
+    // Compute z.r = sqrt(z.x^2 + z.y^2 + z.z^2)
+    __m128d z_x2 = _mm_mul_pd(z_x, z_x);
+    __m128d z_y2 = _mm_mul_pd(z_y, z_y);
+    __m128d z_z2 = _mm_mul_pd(z_z, z_z);
+    __m128d z_r = _mm_sqrt_pd(_mm_add_pd(_mm_add_pd(z_x2, z_y2), z_z2));
+
+    // Compute z.theta = atan2(sqrt(z.x^2 + z.y^2), z.z)
+    __m128d z_theta = 0;
+	z_theta = _mm_atan2_pd(_mm_sqrt_pd(_mm_add_pd(z_x2, z_y2)), z_z);
+
+    // Compute z.phi = atan2(z.y, z.x)
+    __m128d z_phi = _mm_atan2_pd(z_y, z_x);
+
+    // Compute power_of(z.r, n)
+    __m128d z_r_pow_n = simd_power_of(z_r, _mm_set1_pd(n));
+
+    // Compute cos(z.theta * n), cos(z.phi * n), and tan(z.phi * n)
+    __m128d cos_theta_n = _mm_cos_pd(_mm_mul_pd(z_theta, _mm_set1_pd(n)));
+    __m128d cos_phi_n = _mm_cos_pd(_mm_mul_pd(z_phi, _mm_set1_pd(n)));
+    __m128d tan_phi_n = _mm_tan_pd(_mm_mul_pd(z_phi, _mm_set1_pd(n)));
+
+    // Compute new coordinates using SIMD
+    __m128d new_x = _mm_mul_pd(_mm_mul_pd(z_r_pow_n, cos_theta_n), cos_phi_n);
+    __m128d new_y = _mm_mul_pd(_mm_mul_pd(z_r_pow_n, _mm_sin_pd(_mm_mul_pd(z_theta, _mm_set1_pd(n)))), tan_phi_n);
+    __m128d new_z = _mm_mul_pd(z_r_pow_n, cos_theta_n);
+
+    // Add c.x, c.y, c.z
+    new_x = _mm_add_pd(new_x, _mm_set1_pd(c.x));
+    new_y = _mm_add_pd(new_y, _mm_set1_pd(c.y));
+    new_z = _mm_add_pd(new_z, _mm_set1_pd(c.z));
+
+    // Store the results back to z
+    _mm_store_pd(&z->x, new_x);
+    _mm_store_pd(&z->y, new_y);
+    _mm_store_pd(&z->z, new_z);
+
+    // Calculate and return z.r
+    double result[2];
+    _mm_store_pd(result, z_r);
+    return result[0]; // Assuming z.r is the same for both elements
+}
 
 static double	power_of(double base, int exponent)
 {
@@ -78,19 +114,6 @@ static void	set_fractal_range(t_mlx *mlx)
 	mlx->range.y_min = -1 * mlx->zoom;
 }
 
-static double	spherical_radius(t_coordinates *z, t_coordinates c, int n)
-{
-	z->r = sqrt((z->x * z->x) + (z->y * z->y) + (z->z * z->z));
-	z->theta = atan2(sqrt((z->x * z->x) + (z->y * z->y)), z->z);
-	z->phi = atan2(z->y, z->x);
-	z->x = power_of(z->r, n) * cos(z->theta  * n) * cos(z->phi * n);
-	z->y =  power_of(z->r, n) * sin(z->theta * n) * tan(z->phi * n);
-	z->z = power_of(z->r, n) * cos(z->theta * n);
-	z->x += c.x;
-	z->y += c.y;
-	z->z += c.z;
-	return (z->r);
-}
 
 static int	lerp_colors(int	color_start, int color_end, double step)
 {
@@ -207,7 +230,7 @@ static int	is_mandelbulb(t_coordinates *c, t_mlx *mlx)
 	t_coordinates	z;
 	double	i;
 	double	max_c_z;
-	z.iterations = 20;
+	z.iterations = 10;
 
 	max_c_z = -1;
 	c->z = 0;
